@@ -19,9 +19,9 @@
 
 (defn update
   "'Updates' the value at k in the map m using thr provided function f.  The supplied args will be
-    applied to f along with the current or provided default value."
-  [m k default-value f & args]
-  (assoc m k (apply f (get m k default-value) args)))
+    applied to f along with the current value (which may be nil, so fnil can be useful)."
+  [m k f & args]
+  (assoc m k (apply f (get m k) args)))
 
 (deftest update-test
   (facts
@@ -36,8 +36,8 @@
                                  :when (and (not= i j) u_i u_j)]
                              [[i j] (- u_i u_j)])))
         [freqs diffs] (reduce (fn [[freqs-so-far diffs-so-far] [item-pair diff]]
-                                [(update freqs-so-far item-pair 0 inc)
-                                 (update diffs-so-far item-pair 0 + diff)])
+                                [(update freqs-so-far item-pair (fnil inc 0))
+                                 (update diffs-so-far item-pair (fnil + 0) diff)])
                               [{} {}]
                               item-pair-diffs)]
     (reduce (fn [so-far [item-pair diff]]
