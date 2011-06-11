@@ -11,16 +11,25 @@
    []
    coll))
 
+(defn map-vals
+  "Maps the vals in m using f, where f receives k v and returns new v."
+  [f m]
+  (persistent!
+    (reduce (fn [m [k v]] (assoc! m k (f k v)))
+            (transient m) m)))
 
-(defn update
-  "'Updates' the value at k in the map m using thr provided function f.  The supplied args will be
-    applied to f along with the current value (which may be nil, so fnil is useful)."
-  [m k f & args]
-  (assoc m k (apply f (get m k) args)))
+(defn map-nested-vals
+  "Maps the nested vals of a nested map m with f, where f receives the keys and value.
+   Currently only works with maps of a single layer of nesting. Example:
+
+   (map-nested-vals (fn [keys val] (inc val)) {:foo {:bar 2}}) => {:foo {:bar 3}}"
+  [f m]
+  (map-vals (fn [k1 inner-map]
+              (map-vals (fn [k2 val] (f [k1 k2] val)) inner-map)) m))
 
 ;; Main algorithm
 
-(defn differences [data]
+(defn train [data]
   (let [item-pair-diffs (flatten-initial
                          (for [[user preferences] data]
                            (for [[i u_i] preferences
@@ -28,9 +37,9 @@
                                  :when (and (not= i j) u_i u_j)]
                              [[i j] (- u_i u_j)])))
         [freqs diffs] (reduce (fn [[freqs-so-far diffs-so-far] [item-pair diff]]
-                                [(update freqs-so-far item-pair (fnil inc 0))
-                                 (update diffs-so-far item-pair (fnil + 0) diff)])
+                                [(update-in freqs-so-far item-pair (fnil inc 0))
+                                 (update-in diffs-so-far item-pair (fnil + 0) diff)])
                               [{} {}]
                               item-pair-diffs)]
-    (reduce (fn [so-far [item-pair diff]]
-              (assoc-in so-far item-pair (/ diff (get freqs item-pair)))) {} diffs)))
+    {:freqs freqs
+     :differences (map-nested-vals (fn [item-pair diff] (/ diff (get-in freqs item-pair))) diffs)}))
