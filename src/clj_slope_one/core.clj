@@ -19,11 +19,14 @@
 (defn known-items [model]
   (-> model :differences keys))
 
-(defn predict [{:keys [differences freqs] :as model} preferences j]
-  (/ (apply +
-            (for [[i rating] preferences :when (not= i j)]
-              (* (+ (get-in differences [j i]) rating) (get-in freqs [j i]))))
-     (apply + (for [[i _] preferences :when (not= i j)] (get-in freqs [j i])))))
+(defn predict [{:keys [differences freqs] :as model} preferences item]
+  (apply /
+         (reduce (fn [[num denom] [i rating]]
+                   (let [freqs_ji (get-in freqs [item i])]
+                     [(+ num (* (+ (get-in differences [item i]) rating) freqs_ji))
+                      (+ denom freqs_ji)]))
+                   [0 0]
+                   (filter #(not= (first %) item) preferences))))
 
 (defn predictions
   ([model preferences]
