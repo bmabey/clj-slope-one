@@ -2,14 +2,6 @@
   (:use clj-slope-one.core :reload)
   (:use clojure.test midje.sweet))
 
-(deftest map-vals-test
-  (fact
-   (map-vals #(inc %2) {:foo 1 :bar 2})) => {:foo 2 :bar 3})
-
-(deftest map-nested-vals-test
-  (fact
-   (map-nested-vals (fn [keys v] (inc v)) {:foo {:bar 2}})) => {:foo {:bar 3}})
-
 (def data
   {"John" {"Item A" 5 "Item B" 3 "Item C" 2 "Item D" nil}
    "Mark" {"Item A" 3 "Item B" 4 "Item C" nil "Item D" 4}
@@ -32,5 +24,5 @@
        "a list of items can be mapped to predictions"
        (predictions trained-model {"Item A" 2} ["Item B" "Item C"]) => (just {"Item B" (/ 3 2)
                                                                              "Item C" 0})
-       "when no items are specified the all unrated items are predicted on"
+       "when no items are specified all unrated items are predicted on"
        (keys (predictions trained-model {"Item B" 3})) => (just "Item A" "Item C" "Item D"))))
