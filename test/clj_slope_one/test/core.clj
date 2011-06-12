@@ -26,3 +26,8 @@
                                                                              "Item C" 0})
        "when no items are specified all unrated items are predicted on"
        (keys (predictions trained-model {"Item B" 3})) => (just "Item A" "Item C" "Item D"))))
+
+;; TODO: handle case where the item hasn't been rated by anymore (probably return an average
+;; or simply don't have a prediction/reccomendation unless content can be taken into account)
+
+;; TODO: cap the predictions to a specified allowable range (e.g. 0-5)
