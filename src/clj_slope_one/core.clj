@@ -27,6 +27,16 @@
   (map-vals (fn [k1 inner-map]
               (map-vals (fn [k2 val] (f [k1 k2] val)) inner-map)) m))
 
+
+;; nice pattern from: http://tech.puredanger.com/2010/09/24/meet-my-little-friend-mapmap/
+(defn mapmap
+  "Apply kf and vf to a sequence, s, and produce a map of (kf %) to (vf %)."
+  ([vf s]
+     (mapmap identity vf s))
+  ([kf vf s]
+     (zipmap (map kf s)
+              (map vf s))))
+
 ;; Main algorithm
 
 (defn train [data]
@@ -43,3 +53,18 @@
                               item-pair-diffs)]
     {:freqs freqs
      :differences (map-nested-vals (fn [item-pair diff] (/ diff (get-in freqs item-pair))) diffs)}))
+
+(defn known-items [model]
+  (-> model :differences keys))
+
+(defn predict [{:keys [differences freqs] :as model} preferences j]
+  (/ (apply +
+            (for [[i rating] preferences :when (not= i j)]
+              (* (+ (get-in differences [j i]) rating) (get-in freqs [j i]))))
+     (apply + (for [[i _] preferences :when (not= i j)] (get-in freqs [j i])))))
+
+(defn predictions
+  ([model preferences]
+     (predictions model preferences (filter #(not (contains? preferences %)) (known-items model))))
+  ([model preferences items]
+     (mapmap (partial predict model preferences) items)))

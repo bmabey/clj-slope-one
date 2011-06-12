@@ -11,21 +11,26 @@
    (map-nested-vals (fn [keys v] (inc v)) {:foo {:bar 2}})) => {:foo {:bar 3}})
 
 (def data
-  {"John" {"Item A" 5 "Item B" 3 "Item C" 2}
-   "Mark" {"Item A" 3 "Item B" 4 "Item C" nil}
-   "Lucy" {"Item A" nil "Item B" 2 "Item C" 5}})
+  {"John" {"Item A" 5 "Item B" 3 "Item C" 2 "Item D" nil}
+   "Mark" {"Item A" 3 "Item B" 4 "Item C" nil "Item D" 4}
+   "Lucy" {"Item A" nil "Item B" 2 "Item C" 5 "Item D" 3}
+   "Fred" {"Item A" 4 "Item B" nil "Item C" 3 "Item D" nil}})
 
 (deftest slope-one-test
   (facts
    (let [trained-model (train data)]
-     (:differences trained-model) =>  {"Item A" {"Item B" 0.5 "Item C" 3}
-                                       "Item B" {"Item A" -0.5 "Item C" -1}
-                                       "Item C" {"Item A" -3   "Item B" 1}}
-     (:freqs trained-model) =>  {"Item A" {"Item B" 2 "Item C" 1}
-                                 "Item B" {"Item A" 2 "Item C" 2}
-                                 "Item C" {"Item A" 1 "Item B" 2}})
-   ;; Item A and B diff: ((5 - 3) + (3 - 4)) / 2 = (2 + (-1)) /  2  = 0.5
-   ;; Item B and A diff: ((3 - 5) + (4 - 3)) / 2 = (-2 + 1) /  2  = -0.5
-   ;; Item B and C diff: ((3 - 2) + (2 - 5)) / 2 = (1 + (-3)) /  2  = -1.0
-   ;; ....
-   ))
+     (:differences trained-model) =>   {"Item A" {"Item D" -1, "Item C" 2, "Item B" 1/2}
+                                        "Item C" {"Item D" 2, "Item B" 1, "Item A" -2}
+                                        "Item B" {"Item D" -1/2, "Item C" -1, "Item A" -1/2}
+                                        "Item D" {"Item C" -2, "Item B" 1/2, "Item A" 1}}
+     (:freqs trained-model) => {"Item A" {"Item D" 1, "Item C" 2, "Item B" 2}
+                                "Item B" {"Item D" 2, "Item C" 2, "Item A" 2}
+                                "Item C" {"Item D" 1, "Item B" 2, "Item A" 2}
+                                "Item D" {"Item C" 1, "Item B" 2, "Item A" 1}}
+       "a single prediction can be issued for a specified item"
+       (predict trained-model {"Item A" 2} "Item B") => (/ 3 2)
+       "a list of items can be mapped to predictions"
+       (predictions trained-model {"Item A" 2} ["Item B" "Item C"]) => (just {"Item B" (/ 3 2)
+                                                                             "Item C" 0})
+       "when no items are specified the all unrated items are predicted on"
+       (keys (predictions trained-model {"Item B" 3})) => (just "Item A" "Item C" "Item D"))))
